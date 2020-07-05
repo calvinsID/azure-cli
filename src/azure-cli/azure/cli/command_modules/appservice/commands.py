@@ -229,6 +229,9 @@ def load_command_table(self, _):
         g.custom_show_command('show', 'show_deployment_log')
         g.custom_command('list', 'list_deployment_logs')
 
+    with self.command_group('webapp github') as g:
+        g.custom_show_command('auth', 'github_auth')
+
     with self.command_group('webapp deployment slot') as g:
         g.custom_command('list', 'list_slots', table_transformer=output_slots_in_table)
         g.custom_command('delete', 'delete_slot')

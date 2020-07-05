@@ -64,6 +64,7 @@ from ._create_util import (zip_contents_from_dir, get_runtime_version_details, c
 from ._constants import (FUNCTIONS_STACKS_API_JSON_PATHS, FUNCTIONS_STACKS_API_KEYS,
                          FUNCTIONS_LINUX_RUNTIME_VERSION_REGEX, FUNCTIONS_WINDOWS_RUNTIME_VERSION_REGEX,
                          NODE_EXACT_VERSION_DEFAULT, RUNTIME_STACKS, FUNCTIONS_NO_V2_REGIONS, PUBLIC_CLOUD)
+from ._github_oauth import (get_github_access_token)
 
 logger = get_logger(__name__)
 
@@ -2129,6 +2130,10 @@ def config_diagnostics(cmd, resource_group_name, name, level=None,
 
 def show_diagnostic_settings(cmd, resource_group_name, name, slot=None):
     return _generic_site_operation(cmd.cli_ctx, resource_group_name, name, 'get_diagnostic_logs_configuration', slot)
+
+
+def github_auth(cmd, resource_group, name, slot=None, deployment_id=None):
+    return get_github_access_token()
 
 
 def show_deployment_log(cmd, resource_group, name, slot=None, deployment_id=None):
