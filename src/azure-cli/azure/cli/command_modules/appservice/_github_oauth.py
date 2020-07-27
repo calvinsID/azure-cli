@@ -16,31 +16,32 @@ def get_github_access_token():
     random_state = os.urandom(5).hex()
 
     authorize_url = 'https://github.com/login/oauth/authorize?' \
-                    'client_id={}&state={}&scope=repo+workflow&redirect_uri={}'.format(
+                    'client_id={}&state={}&scope=admin:repo_hook+repo+workflow&redirect_uri={}'.format(
                         GITHUB_OAUTH_CLIENT_ID, random_state, GITHUB_OAUTH_REDIRECT_URI)
     logger.warning('Opening OAuth URL')
 
-    import webbrowser
-    webbrowser.open(authorize_url)
-
     # Get code to exchange for access token
-    access_code = _start_http_server(random_state)
+    access_code = _start_http_server(random_state, authorize_url)
 
-    if access_code:
-        import requests
-        access_token_url = 'https://localhost:44300/api/staticsites/appservice/github/generateAccessToken'
-        payload = {
-            'code': access_code,
-            'state': random_state
-        }
-        # Exchange for access token
-        response = requests.post(access_token_url, json=payload, verify=False)
-        if 'access_token' in response.json():
-            return response.json()['access_token']
+    print('@@@@@@')
+    print(access_code)
+    print(random_state)
+
+    # if access_code:
+    #     import requests
+    #     access_token_url = 'https://localhost:44300/api/staticsites/appservice/github/generateAccessToken'
+    #     payload = {
+    #         'code': access_code,
+    #         'state': random_state
+    #     }
+    #     # Exchange for access token
+    #     response = requests.post(access_token_url, json=payload, verify=False)
+    #     if 'access_token' in response.json():
+    #         return response.json()['access_token']
     return None
 
 
-def _start_http_server(random_state):
+def _start_http_server(random_state, authorize_url):
     ip = '127.0.0.1'
     port = 3000
     
@@ -70,6 +71,8 @@ def _start_http_server(random_state):
 
     try:
         with socketserver.TCPServer((ip, port), CallBackHandler) as httpd:
+            import webbrowser
+            webbrowser.open(authorize_url)
             logger.warning('Listening at port: {}'.format(port))
             httpd.handle_request()
     except Exception as e:
