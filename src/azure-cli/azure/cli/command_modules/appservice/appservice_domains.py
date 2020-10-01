@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------------------------------
 
 from azure.cli.core.commands import DeploymentOutputLongRunningOperation
-from azure.cli.core.commands.client_factory import get_mgmt_service_client
+from azure.cli.core.commands.client_factory import get_mgmt_service_client, get_subscription_id
 from azure.cli.core.profiles import ResourceType
 from azure.cli.core.util import sdk_no_wait, random_string
 from knack.util import CLIError
@@ -308,3 +308,101 @@ def verify_contact_info_and_format(contact_info):
         return_contact_info['address2'] = ''
 
     return return_contact_info
+
+
+def update_domain(cmd, resource_group_name, hostname, contact_info=None, privacy=None, auto_renew=None, tags=None):
+    tags = tags or {}
+    subscription = get_subscription_id(cmd.cli_ctx)
+    Domain = cmd.get_models('Domain')
+    Address = cmd.get_models('Address')
+    Contact = cmd.get_models('Contact')
+    Consent = cmd.get_models('DomainPurchaseConsent')
+    web_client = web_client_factory(cmd.cli_ctx)
+    dns_client = dns_client_factory(cmd.cli_ctx)
+
+    existing_domain = web_client.domains.get(resource_group_name=resource_group_name, domain_name=hostname)
+    if not privacy:
+        privacy = existing_domain.privacy
+    if not auto_renew:
+        auto_renew = existing_domain.auto_renew
+
+    if contact_info:
+        import json
+        try:
+            contact_info = json.loads(contact_info)
+        except Exception:
+            raise CLIError('Unable to load contact info. Please verify the path to your contact info file, '
+                        'and that the format matches the sample found at the following link: '
+                        'https://github.com/AzureAppServiceCLI/appservice_domains_templates'
+                        '/blob/master/contact_info.json')
+    else:
+        # Merge existing_domain contact info and contact_info
+    contact_info = verify_contact_info_and_format(contact_info)
+
+    email = contact_info['email']
+    name_first = contact_info['name_first']
+    name_last = contact_info['name_last']
+    name_middle = contact_info['name_middle']
+    phone = contact_info['phone']
+    address1 = contact_info['address1']
+    address2 = contact_info['address2']
+    city = contact_info['city']
+    country = contact_info['country']
+    postal_code = contact_info['postal_code']
+    state = contact_info['state']
+    fax = contact_info['fax']
+    job_title = contact_info['job_title']
+    organization = contact_info['organization']
+
+    dns_zone = dns_client.zones.get(resource_group_name=resource_group_name, zone_name=hostname)
+    if not dns_zone:
+        raise CLIError("'{}' dns zone doesn't exist in resource group {}".format(hostname, resource_group_name))
+    dns_zone_id = dns_zone.id
+
+    consent = Consent()
+    address = Address(address1=address1, address2=address2, city=city, country=country, postal_code=postal_code, state=state)
+    contact = Contact(email=email, name_first=name_first, name_last=name_last, phone=phone,
+                      address_mailing=address, fax=fax, job_title=job_title, name_middle=name_middle, organization=organization)
+    domain = Domain(location='global', contact_admin=contact, contact_billing=contact, contact_registrant=contact, contact_tech=contact,
+                    consent=consent, privacy=privacy, auto_renew=auto_renew, dns_type='AzureDns', dns_zone_id=dns_zone_id, tags=tags)
+
+    return web_client.domains.update(resource_group_name=resource_group_name, domain_name=hostname, domain=domain)
+
+
+def show_domain(cmd, resource_group_name, hostname):
+    web_client = web_client_factory(cmd.cli_ctx)
+
+    return web_client.domains.get(resource_group_name=resource_group_name, domain_name=hostname)
+
+
+def list_domains(cmd, resource_group_name=None):
+    web_client = web_client_factory(cmd.cli_ctx)
+
+    if resource_group_name:
+        return web_client.domains.list_by_resource_group(resource_group_name=resource_group_name)
+    return web_client.domains.list()
+
+
+def delete_domain(cmd, resource_group_name, hostname, force_hard_delete=False):
+    web_client = web_client_factory(cmd.cli_ctx)
+    subscription = get_subscription_id(cmd.cli_ctx)
+
+    return web_client.domains.delete(resource_group_name=resource_group_name, domain_name=hostname, force_hard_delete_domain=force_hard_delete)
+
+
+def renew_domain(cmd, resource_group_name, hostname):
+    web_client = web_client_factory(cmd.cli_ctx)
+    subscription = get_subscription_id(cmd.cli_ctx)
+
+    domain = web_client.domains.get(resource_group_name=resource_group_name, domain_name=hostname)
+    if domain.domain_not_renewable_reasons:
+        for reason in domain.domain_not_renewable_reasons:
+            if reason == 'RegistrationStatusNotSupportedForRenewal':
+                raise CLIError('The renew operation cannot be performed because the domain registration status is not supported for renew.')
+            elif reason == 'ExpirationNotInRenewalTimeRange':
+                raise CLIError('Manual domain renewal can only be performed up to 90 days ahead of domain expiration and up to 18 days after domain expiration.')
+            elif reason == 'SubscriptionNotActive':
+                raise CLIError('The renew operation cannot be performed because the subscription is not active.')
+            else:
+                raise CLIError('The renew operation cannot be performed. Reason: {}'.format(reason))
+    return web_client.domains.renew(resource_group_name=resource_group_name, domain_name=hostname, raw=True)

@@ -909,6 +909,25 @@ def load_arguments(self, _):
     with self.argument_context('appservice domain show-terms') as c:
         c.argument('hostname', options_list=['--hostname', '-n'], help='Name of the custom domain')
 
+    with self.argument_context('appservice domain update') as c:
+        c.argument('hostname', options_list=['--hostname', '-n'], help='Name of the custom domain')
+        c.argument('contact_info', options_list=['--contact-info', '-c'], help='The file path to a JSON object with your contact info for domain registration. '
+                                                                                'Please see the following link for the format of the JSON file expected: '
+                                                                                'https://github.com/AzureAppServiceCLI/appservice_domains_templates/blob/master/contact_info.json')
+        c.argument('privacy', options_list=['--privacy', '-p'], help='Enable privacy protection')
+        c.argument('auto_renew', options_list=['--auto-renew', '-a'], help='Enable auto-renew on the domain')
+        c.argument('tags', arg_type=tags_type)
+
+    with self.argument_context('appservice domain show') as c:
+        c.argument('hostname', options_list=['--hostname', '-n'], help='Name of the custom domain')
+
+    with self.argument_context('appservice domain delete') as c:
+        c.argument('hostname', options_list=['--hostname', '-n'], help='Name of the custom domain')
+        c.argument('force_hard_delete', options_list=['--force-hard-delete', '-f'], help='Immediately delete domain. Defaults to false, which deletes the domain after 24 hours')
+
+    with self.argument_context('appservice domain renew') as c:
+        c.argument('hostname', options_list=['--hostname', '-n'], help='Name of the custom domain')
+
     with self.argument_context('staticwebapp') as c:
         c.argument('name', options_list=['--name', '-n'], metavar='NAME', help="Name of the static site")
         c.argument('source', options_list=['--source', '-s'], help="URL for the repository of the static site.")
