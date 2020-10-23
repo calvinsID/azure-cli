@@ -23,21 +23,22 @@ def get_github_access_token():
     # Get code to exchange for access token
     access_code = _start_http_server(random_state, authorize_url)
 
-    print('@@@@@@')
-    print(access_code)
-    print(random_state)
+    if access_code:
+        import requests
 
-    # if access_code:
-    #     import requests
-    #     access_token_url = 'https://localhost:44300/api/staticsites/appservice/github/generateAccessToken'
-    #     payload = {
-    #         'code': access_code,
-    #         'state': random_state
-    #     }
-    #     # Exchange for access token
-    #     response = requests.post(access_token_url, json=payload, verify=False)
-    #     if 'access_token' in response.json():
-    #         return response.json()['access_token']
+        # TODO: calcha remove. Disable insecure requests while using private geo
+        from requests.packages.urllib3.exceptions import InsecureRequestWarning
+        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+        access_token_url = 'https://calchageo.cloudapp.net:444/providers/Microsoft.Web/generategithubAccessTokenForAppserviceCLI?api-version=2019-08-01'
+        payload = {
+            'code': access_code,
+            'state': random_state
+        }
+        # Exchange for access token
+        response = requests.post(access_token_url, json=payload, cert="C:\AntInternalTestCert.pem", verify=False)
+        if 'accessToken' in response.json():
+            return response.json()['accessToken']
     return None
 
 
@@ -73,7 +74,7 @@ def _start_http_server(random_state, authorize_url):
         with socketserver.TCPServer((ip, port), CallBackHandler) as httpd:
             import webbrowser
             webbrowser.open(authorize_url)
-            logger.warning('Listening at port: {}'.format(port))
+            # logger.warning('Listening at port: {}'.format(port))
             httpd.handle_request()
     except Exception as e:
         raise CLIError('Socket error: {}. Please try again, or provide personal access token'.format(e))

@@ -2132,7 +2132,7 @@ def show_diagnostic_settings(cmd, resource_group_name, name, slot=None):
     return _generic_site_operation(cmd.cli_ctx, resource_group_name, name, 'get_diagnostic_logs_configuration', slot)
 
 
-def github_auth(cmd, resource_group, name, slot=None, deployment_id=None):
+def github_auth(cmd, resource_group, name):
     return get_github_access_token()
 
 
