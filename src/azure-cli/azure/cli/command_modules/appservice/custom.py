@@ -2133,7 +2133,7 @@ def show_diagnostic_settings(cmd, resource_group_name, name, slot=None):
 
 
 def github_auth(cmd, resource_group, name):
-    return get_github_access_token()
+    return get_github_access_token(cmd)
 
 
 def show_deployment_log(cmd, resource_group, name, slot=None, deployment_id=None):

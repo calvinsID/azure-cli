@@ -6,12 +6,13 @@
 from knack.util import CLIError
 from knack.log import get_logger
 
+from ._client_factory import web_client_factory
 from ._constants import (GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_REDIRECT_URI)
 
 logger = get_logger(__name__)
 
 
-def get_github_access_token():
+def get_github_access_token(cmd):
     import os
     random_state = os.urandom(5).hex()
 
@@ -24,21 +25,11 @@ def get_github_access_token():
     access_code = _start_http_server(random_state, authorize_url)
 
     if access_code:
-        import requests
+        client = web_client_factory(cmd.cli_ctx, api_version="2020-09-01")
+        response = client.generate_github_access_token_for_appservice_cli_async(access_code, random_state)
 
-        # TODO: calcha remove. Disable insecure requests while using private geo
-        from requests.packages.urllib3.exceptions import InsecureRequestWarning
-        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-        access_token_url = 'https://calchageo.cloudapp.net:444/providers/Microsoft.Web/generategithubAccessTokenForAppserviceCLI?api-version=2019-08-01'
-        payload = {
-            'code': access_code,
-            'state': random_state
-        }
-        # Exchange for access token
-        response = requests.post(access_token_url, json=payload, cert="C:\AntInternalTestCert.pem", verify=False)
-        if 'accessToken' in response.json():
-            return response.json()['accessToken']
+        if response.access_token:
+            return response.access_token
     return None
 
 
